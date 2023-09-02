@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
+using System.Reflection.Metadata;
 using XUnitApi.Models;
 using XUnitApi.Services;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace XUnitApi.Controllers
 {
@@ -14,12 +16,11 @@ namespace XUnitApi.Controllers
     public class FormTableController : ControllerBase
     {
         private readonly IFormTableRepository _formTableRepository;
-        private readonly IMapper _mapper;
 
         public FormTableController(IFormTableRepository formTableRepository)
         {
             _formTableRepository = formTableRepository;
-            
+
         }
         //Get all records from Form table by passing FormType as parameter
         [HttpGet]
@@ -43,9 +44,8 @@ namespace XUnitApi.Controllers
         }
 
         [HttpGet("/forms/{tableId}")]
-        public async Task<ActionResult<(List<Form> forms, string tableName)>> GetFormsAndTableName(Guid tableId)
+        public async Task<IActionResult> GetFormsAndTableName(Guid tableId)
         {
-            
             try
             {
                 var (forms, tableName) = await _formTableRepository.GetAllFormsAndTableName(tableId);
@@ -62,13 +62,16 @@ namespace XUnitApi.Controllers
                 return Ok(result);
             }
             catch (Exception ex)
-            { 
+            {
                 return BadRequest(ex.Message);
             }
         }
+    
+      
+        
 
         [HttpGet("/form/{tableName}")]
-        public async Task<ActionResult<List<Form>>> GetFormsByTableName(string tableName)
+        public async Task<IActionResult> GetFormsByTableName(string tableName)
         {
             try
             {
@@ -132,6 +135,8 @@ namespace XUnitApi.Controllers
             }
         }
 
+        /*
+
         [HttpPost("/add/{tableName}")]
         public async Task<IActionResult> AddFormForTable(string tableName, Form form)
         {
@@ -146,6 +151,34 @@ namespace XUnitApi.Controllers
                 return NotFound("Aotable record not found for the specified table name.");
             }
 
+        } */
+
+
+        [HttpPost]
+        public async Task<IActionResult> AddForm([FromBody] Form form)
+        {
+            try
+            {
+                if (form == null)
+                {
+                    return BadRequest("Invalid form data.");
+                }
+
+                var addedForm = await _formTableRepository.AddForm(form);
+
+                if (addedForm != null)
+                {
+                    return Ok(addedForm);
+                }
+                else
+                {
+                    return NotFound("name not available in AOtable");
+                }
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

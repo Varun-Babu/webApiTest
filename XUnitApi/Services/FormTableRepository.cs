@@ -32,7 +32,6 @@ namespace XUnitApi.Services
                 .Where(a => a.Id == tableId)
                 .Select(a => a.Name)
                 .FirstOrDefaultAsync();
-
             return (forms,tableName);
         }
 
@@ -84,6 +83,7 @@ namespace XUnitApi.Services
 
         public async Task<bool> AddFormForTableName(string tableName, Form form)
         {
+
             var aotable = await apiDbContext.Aotables.FirstOrDefaultAsync(t => t.Name == tableName);
             if (aotable != null)
             {
@@ -95,11 +95,19 @@ namespace XUnitApi.Services
             return false;
         }
 
-
-
-
-
+        public async Task<Form> AddForm(Form form)
+        {
+            var nameExist = apiDbContext.Aotables.FirstOrDefault(n => n.Id == form.TableId && n.Name != null);
+            if (nameExist != null)
+            {
+                apiDbContext.Forms.Add(form);
+                await apiDbContext.SaveChangesAsync();
+                return form;
+            }
+            return null;
+        }
+        
     }
 }
-    
+
 

@@ -5,6 +5,8 @@ C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\XUnitApi.dep
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\XUnitApi.runtimeconfig.json
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\XUnitApi.dll
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\XUnitApi.pdb
+C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\AutoMapper.dll
+C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\Azure.Core.dll
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\Azure.Identity.dll
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\Humanizer.dll
@@ -80,5 +82,3 @@ C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\obj\Debug\net6.0\refint\XUnit
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\obj\Debug\net6.0\XUnitApi.pdb
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\obj\Debug\net6.0\XUnitApi.genruntimeconfig.cache
 C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\obj\Debug\net6.0\ref\XUnitApi.dll
-C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\AutoMapper.dll
-C:\Users\varun.babu\source\repos\XUnitApi\XUnitApi\bin\Debug\net6.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll

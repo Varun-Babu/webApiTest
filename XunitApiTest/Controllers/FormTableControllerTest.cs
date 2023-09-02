@@ -12,6 +12,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using XUnitApi.Data;
+using Newtonsoft.Json;
+using Azure;
+using Microsoft.SqlServer.Server;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using System.Drawing;
+using System.Reflection.Metadata;
+using System.Text.RegularExpressions;
 
 namespace XunitApiTest.Controllers
 {
@@ -34,7 +41,7 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var formName = _fixture.Create<string>();
-            var updatedField = new Form
+            var updatedForm = new Form
             {
                 Name = formName,
 
@@ -45,17 +52,17 @@ namespace XunitApiTest.Controllers
 
             };
 
-            _mockInterface.Setup(s => s.EditForm(formName, updatedField)).ReturnsAsync(existingField);
+            _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ReturnsAsync(existingField);
 
             // Act
-            var result = await _sut.EditForm(formName, updatedField);
+            var result = await _sut.EditForm(formName, updatedForm);
 
             // Assert
             result.Should().BeOfType<OkObjectResult>()
                 .Which.Value.Should().Be("Successfully Updated");
 
             // Verify that the service method was called with the correct arguments
-            _mockInterface.Verify(s => s.EditForm(formName, updatedField), Times.Once);
+            _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
         [Fact]
@@ -63,22 +70,22 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var formName = _fixture.Create<string>();
-            var updatedField = new Form
+            var updatedForm = new Form
             {
                 Name = formName,
 
             };
-            _mockInterface.Setup(s => s.EditForm(formName, updatedField)).ReturnsAsync((Form)null);
+            _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ReturnsAsync((Form)null);
 
             // Act
-            var result = await _sut.EditForm(formName, updatedField);
+            var result = await _sut.EditForm(formName, updatedForm);
 
             // Assert
             result.Should().BeOfType<NotFoundObjectResult>()
                 .Which.Value.Should().Be("No Such Form Exists");
 
             // Verify that the service method was called with the correct argument
-            _mockInterface.Verify(s => s.EditForm(formName, updatedField), Times.Once);
+            _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
         [Fact]
@@ -87,21 +94,21 @@ namespace XunitApiTest.Controllers
             // Arrange
 
             var formName = _fixture.Create<string>();
-            var updatedField = new Form
+            var updatedForm = new Form
             {
                 Name = formName,
 
             };
 
-            _mockInterface.Setup(s => s.EditForm(formName, updatedField)).ThrowsAsync(new Exception("Test exception"));
+            _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ThrowsAsync(new Exception("Test exception"));
             // Act
-            var result = await _sut.EditForm(formName, updatedField);
+            var result = await _sut.EditForm(formName, updatedForm);
             // Assert
             result.Should().BeOfType<BadRequestObjectResult>()
                 .Which.Value.Should().Be("Test exception");
 
             // Verify that the service method was called with the correct argument
-            _mockInterface.Verify(s => s.EditForm(formName, updatedField), Times.Once);
+            _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
         #endregion
@@ -136,9 +143,7 @@ namespace XunitApiTest.Controllers
         public async Task DeleteForm_ReturnsNotFound_WhenFormDoesNotExist()
         {
             // Arrange
-            var id = _fixture.Create<Guid>(); // Use a specific GUID that doesn't exist
-
-            // Configure FormExists to return false for the given non-existent id
+            var id = _fixture.Create<Guid>(); 
             _mockInterface.Setup(x => x.FormExists(id)).Returns(false);
 
             // Act
@@ -157,6 +162,29 @@ namespace XunitApiTest.Controllers
             _mockInterface.Verify(i => i.DeleteForm(It.IsAny<Guid>()), Times.Never);
         }
 
+        [Fact]
+        public async Task DeleteForm_ExceptionThrown_ShouldReturnBadRequestWithExceptionMessage()
+        {
+            // Arrange
+            var formId = Guid.NewGuid();
+            _mockInterface.Setup(repo => repo.FormExists(formId))
+                .Returns(true);
+            _mockInterface.Setup(repo => repo.DeleteForm(formId))
+                .ThrowsAsync(new Exception("An error occurred while deleting the form."));
+
+            // Act
+            var result = await _sut.DeleteForm(formId);
+
+            // Assert
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.StatusCode.Should().Be(400);
+            badRequestResult.Value.Should().Be("An error occurred while deleting the form.");
+
+            // Verify that the FormExists and DeleteForm methods of the repository were called with the expected parameter
+            _mockInterface.Verify(repo => repo.FormExists(formId), Times.Once);
+            _mockInterface.Verify(repo => repo.DeleteForm(formId), Times.Once);
+        }
+
         #endregion
 
         #region get all forms by type
@@ -164,8 +192,17 @@ namespace XunitApiTest.Controllers
         public async Task GetAllFormsByFormType_ReturnsOkResult_WithValidFormType()
         {
             // Arrange
-            var formType = "SampleFormType"; // Specify a valid form type for testing.
-            var expectedForms = new List<Form> { new Form { Id = Guid.NewGuid(), Type = formType } };
+            var formType = _fixture.Create<string>(); 
+            var expectedForms = new List<Form>
+            {
+                new Form(),
+                new Form(),
+                new Form()
+            };
+            foreach (var form in expectedForms)
+            {
+                form.Type = formType; 
+            }
 
             _mockInterface.Setup(repo => repo.GetAllFormsByFormType(formType))
                           .ReturnsAsync(expectedForms);
@@ -174,16 +211,20 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetAllFormsByFormType(formType);
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var resultForms = Assert.IsType<List<Form>>(okResult.Value);
-            Assert.Equal(expectedForms.Count, resultForms.Count);
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.StatusCode.Should().Be(200);
+            var resultForms = okResult.Value.Should().BeAssignableTo<List<Form>>().Subject;
+            resultForms.Should().BeEquivalentTo(expectedForms);
+
+            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsByFormType(formType), Times.Once);
         }
 
         [Fact]
         public async Task GetAllFormsByFormType_ReturnsNotFound_WithInvalidFormType()
         {
             // Arrange
-            var invalidFormType = "NonExistentFormType"; // Specify an invalid form type for testing.
+            var invalidFormType = _fixture.Create<string>(); 
 
             _mockInterface.Setup(repo => repo.GetAllFormsByFormType(invalidFormType))
                           .ReturnsAsync((List<Form>)null);
@@ -192,164 +233,236 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetAllFormsByFormType(invalidFormType);
 
             // Assert
-            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal("No form existing with the given name", notFoundResult.Value);
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.StatusCode.Should().Be(404);
+            var errorMessage = notFoundResult.Value.Should().BeOfType<string>().Subject;
+            errorMessage.Should().Be("No form existing with the given name");
+
+            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsByFormType(invalidFormType), Times.Once);
         }
 
         [Fact]
         public async Task GetAllFormsByFormType_ReturnsBadRequest_WhenExceptionOccurs()
         {
             // Arrange
-            var formType = "SampleFormType"; // Specify a valid form type for testing.
+            var formType = _fixture.Create<string>(); 
 
             _mockInterface.Setup(repo => repo.GetAllFormsByFormType(formType))
                           .ThrowsAsync(new Exception("An error occurred"));
-
             // Act
             var result = await _sut.GetAllFormsByFormType(formType);
 
             // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            var exceptionMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("An error occurred", exceptionMessage);
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.StatusCode.Should().Be(400);
+            var exceptionMessage = badRequestResult.Value.Should().BeOfType<string>().Subject;
+            exceptionMessage.Should().Be("An error occurred");
+
+            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsByFormType(formType), Times.Once);
         }
 
         #endregion
 
+        #region add form
+
         [Fact]
-        public async Task AddFormForTable_ValidInput_ReturnsOk()
+        public async Task AddForm_ValidForm_ShouldReturnOkWithAddedForm()
         {
             // Arrange
-            var tableName = "exampleTable";
-            var validForm = new Form
-            {
-                Id = Guid.NewGuid(), // Generate a new unique GUID for the form
-                RatebookId = Guid.NewGuid(), // Set a valid RatebookId
-                TableId = Guid.NewGuid(), // Set a valid TableId
-                AddChangeDeleteFlag = "Add", // Set other properties accordingly
-                Sequence = 1,
-                SubSequence = 2,
-                Type = "SomeType",
-                MinOccurs = 0,
-                MaxOccurs = 10,
-                Number = "123",
-                Name = "Sample Form",
-                Comment = "This is a sample form",
-                HelpText = "Help text goes here",
-            };
-
-            var repositoryMock = new Mock<IFormTableRepository>();
-            repositoryMock
-                .Setup(repo => repo.AddFormForTableName(tableName, It.IsAny<Form>()))
-                .ReturnsAsync(true);
-
-            var controller = new FormTableController(repositoryMock.Object);
+            var validForm = new Form();
+            _mockInterface.Setup(repo => repo.AddForm(It.IsAny<Form>()))
+                .ReturnsAsync(validForm);
 
             // Act
-            var result = await controller.AddFormForTable(tableName, validForm) as OkObjectResult;
+            var result = await _sut.AddForm(validForm);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(200, result.StatusCode);
-            Assert.Equal("Form added successfully.", result.Value);
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.StatusCode.Should().Be(200);
+            okResult.Value.Should().BeEquivalentTo(validForm);
+
+            // Verify that the AddForm method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
         }
 
         [Fact]
-        public async Task AddFormForTable_InvalidInput_ReturnsBadRequest()
-        {
-            var tableName = "exampleTable";
-            var invalidForm = new Form(); // This form is intentionally left invalid
-
-            var repositoryMock = new Mock<IFormTableRepository>();
-            var controller = new FormTableController(repositoryMock.Object);
-            controller.ModelState.AddModelError("FieldName", "Error message"); // Simulate model validation error
-
-            // Act
-            var result = await controller.AddFormForTable(tableName, invalidForm) as ObjectResult;
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
-            Assert.IsType<ValidationProblemDetails>(result.Value); // Check the specific type
-        }
-
-        [Fact]
-        public async Task AddFormForTable_TableNotFound_ReturnsNotFound()
+        public async Task AddForm_InvalidForm_ShouldReturnBadRequest()
         {
             // Arrange
-            var tableName = "nonExistentTable";
-            var validForm = new Form
-            {
-                Id = Guid.NewGuid(), // Generate a new unique GUID for the form
-                RatebookId = Guid.NewGuid(), // Set a valid RatebookId
-                TableId = Guid.NewGuid(), // Set a valid TableId
-                AddChangeDeleteFlag = "Add", // Set other properties accordingly
-                Sequence = 1,
-                SubSequence = 2,
-                Type = "SomeType",
-                MinOccurs = 0,
-                MaxOccurs = 10,
-                Number = "123",
-                Name = "Sample Form",
-                Comment = "This is a sample form",
-                HelpText = "Help text goes here",
-            };
-
-            var repositoryMock = new Mock<IFormTableRepository>();
-            repositoryMock
-                .Setup(repo => repo.AddFormForTableName(tableName, It.IsAny<Form>()))
-                .ReturnsAsync(false);
-
-            var controller = new FormTableController(repositoryMock.Object);
+            Form invalidForm = null;
 
             // Act
-            var result = await controller.AddFormForTable(tableName, validForm) as NotFoundObjectResult;
+            var result = await _sut.AddForm(invalidForm);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(404, result.StatusCode);
-            Assert.Equal("Aotable record not found for the specified table name.", result.Value);
+            result.Should().BeOfType<BadRequestObjectResult>();
+
+            // Verify that the AddForm method of the repository was not called
+            _mockInterface.Verify(repo => repo.AddForm(It.IsAny<Form>()), Times.Never);
         }
 
         [Fact]
-        public async Task AddFormForTable_ExceptionOccurs_ReturnsInternalServerError()
+        public async Task AddForm_TableNameNotFound_ShouldReturnNotFound()
         {
             // Arrange
-            var tableName = "exampleTable";
-            var validForm = new Form
-            {
-                Id = Guid.NewGuid(), // Generate a new unique GUID for the form
-                RatebookId = Guid.NewGuid(), // Set a valid RatebookId
-                TableId = Guid.NewGuid(), // Set a valid TableId
-                AddChangeDeleteFlag = "Add", // Set other properties accordingly
-                Sequence = 1,
-                SubSequence = 2,
-                Type = "SomeType",
-                MinOccurs = 0,
-                MaxOccurs = 10,
-                Number = "123",
-                Name = "Sample Form",
-                Comment = "This is a sample form",
-                HelpText = "Help text goes here",
-            };
-
-            var repositoryMock = new Mock<IFormTableRepository>();
-            repositoryMock
-                .Setup(repo => repo.AddFormForTableName(tableName, It.IsAny<Form>()))
-                .ThrowsAsync(new Exception("Simulated exception"));
-
-            var controller = new FormTableController(repositoryMock.Object);
+            var validForm = new Form();
+            _mockInterface.Setup(repo => repo.AddForm(It.IsAny<Form>()))
+                .ReturnsAsync((Form)null);
 
             // Act
-            var result = await controller.AddFormForTable(tableName, validForm) as StatusCodeResult;
+            var result = await _sut.AddForm(validForm);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(500, result.StatusCode);
+            result.Should().BeOfType<NotFoundObjectResult>();
+
+            // Verify that the AddForm method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
         }
 
-        // You can write similar tests for the GetFormsAndTableName action
+        #endregion
+
+        #region get forms by tablename
+
+        [Fact]
+        public async Task GetFormsByTableName_FormsExist_ShouldReturnOkWithForms()
+        {
+            // Arrange
+            var tableName = "SampleTable";
+             var forms = new List<Form>
+             {
+                 new Form(),
+                 new Form(),
+                 new Form()
+             }; 
+  
+            // Create a list of 3 sample forms
+            _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
+                .ReturnsAsync(forms);
+
+            // Act
+            var result = await _sut.GetFormsByTableName(tableName);
+
+            // Assert
+           result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(forms);
+
+            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFormsByTableName_NoFormsExist_ShouldReturnNotFound()
+        {
+            // Arrange
+            var tableName = "NonExistentTable";
+            _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
+                .ReturnsAsync(new List<Form>()); 
+
+            // Act
+            var result = await _sut.GetFormsByTableName(tableName);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+
+            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFormsByTableName_ExceptionThrown_ShouldReturnBadRequest()
+        {
+            // Arrange
+            var tableName = "SampleTable";
+            _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
+                .ThrowsAsync(new Exception("An error occurred."));
+
+            // Act
+            var result = await _sut.GetFormsByTableName(tableName);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+
+            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
+        }
+
+        #endregion
+
+        #region Get Forms and Table Name
+
+        [Fact]
+        public async Task GetFormsAndTableName_FormsExist_ShouldReturnOkWithFormsAndTableName()
+        {
+            // Arrange
+            var tableId = Guid.NewGuid();
+            var tableName = "SampleTable";
+            var forms = new List<Form>
+            {
+                new Form(),
+                new Form(),
+                new Form()
+                
+            };
+
+            // Create a list of 3 sample forms
+            _mockInterface.Setup(repo => repo.GetAllFormsAndTableName(tableId))
+                .ReturnsAsync((forms, tableName));
+
+            // Act
+            var result = await _sut.GetFormsAndTableName(tableId);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.StatusCode.Should().Be(200);
+
+            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
+
+        }
+
+        [Fact]
+        public async Task GetFormsAndTableName_NoFormsExist_ShouldReturnNotFound()
+        {
+            // Arrange
+            var tableId = Guid.NewGuid();
+            _mockInterface.Setup(repo => repo.GetAllFormsAndTableName(tableId))
+                .ReturnsAsync((new List<Form>(), "NonExistentTable"));
+
+            // Act
+            var result = await _sut.GetFormsAndTableName(tableId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+
+            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFormsAndTableName_ExceptionThrown_ShouldReturnBadRequest()
+        {
+            // Arrange
+            var tableId = Guid.NewGuid();
+            _mockInterface.Setup(repo => repo.GetAllFormsAndTableName(tableId))
+                .ThrowsAsync(new Exception("An error occurred."));
+
+            // Act
+            var result = await _sut.GetFormsAndTableName(tableId);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+
+            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
+        }
+
+        #endregion
+
     }
+}
+
+    
 
 
 
@@ -369,6 +482,6 @@ namespace XunitApiTest.Controllers
 
 
     
-}
+
 
 
