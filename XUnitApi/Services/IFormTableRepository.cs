@@ -18,7 +18,8 @@ namespace XUnitApi.Services
         public Task<Form> EditForm(string formName, Form editedForm);
 
         //add
-        Task<bool> AddFormForTableName(string tableName, Form form);
+
+       //Task<bool> AddFormForTableName(string tableName, Form form);
         public  Task<Form> AddForm(Form form);
 
 

@@ -2,6 +2,7 @@
 using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Reflection.Metadata;
@@ -43,6 +44,8 @@ namespace XUnitApi.Controllers
             }
         }
 
+        //Get all records from Form table and Name fro AoTable by passing tableId as parameter
+
         [HttpGet("/forms/{tableId}")]
         public async Task<IActionResult> GetFormsAndTableName(Guid tableId)
         {
@@ -66,9 +69,8 @@ namespace XUnitApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
-    
-      
-        
+
+        //Get all records from Form table by passing TableName as parameter
 
         [HttpGet("/form/{tableName}")]
         public async Task<IActionResult> GetFormsByTableName(string tableName)
@@ -90,6 +92,7 @@ namespace XUnitApi.Controllers
             }
         }
 
+        //Delete record from Form table by passing id as parameter
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteForm(Guid id)
         {
@@ -113,8 +116,8 @@ namespace XUnitApi.Controllers
             }
         }
 
-       
 
+        //edit records from Form table by passing FormName as parameter
         [HttpPut]
         public async Task<IActionResult> EditForm(string formName, Form form)
         {
@@ -153,6 +156,7 @@ namespace XUnitApi.Controllers
 
         } */
 
+        //Add form in formtable for any table name available in aotable
 
         [HttpPost]
         public async Task<IActionResult> AddForm([FromBody] Form form)

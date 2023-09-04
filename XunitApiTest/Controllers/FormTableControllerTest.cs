@@ -66,7 +66,7 @@ namespace XunitApiTest.Controllers
         }
 
         [Fact]
-        public async Task EditRecord_ReturnsNotFound_WhenFieldNotFound()
+        public async Task EditForm_ReturnsNotFound_WhenFormNotFound()
         {
             // Arrange
             var formName = _fixture.Create<string>();
@@ -89,7 +89,7 @@ namespace XunitApiTest.Controllers
         }
 
         [Fact]
-        public async Task EditRecordn_ReturnsBadRequest_WhenExceptionThrow()
+        public async Task EditForm_ReturnsBadRequest_WhenExceptionThrow()
         {
             // Arrange
 
@@ -116,7 +116,7 @@ namespace XunitApiTest.Controllers
         #region delete
 
         [Fact]
-        public async Task DeleteRecord_SuccessfulDeletion_WhenValidInput()
+        public async Task DeleteForm_SuccessfulDeletion_WhenValidInput()
         {
             // Arrange
             var id = _fixture.Create<Guid>();

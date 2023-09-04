@@ -80,7 +80,7 @@ namespace XUnitApi.Services
         }
 
 
-
+        /*
         public async Task<bool> AddFormForTableName(string tableName, Form form)
         {
 
@@ -93,7 +93,7 @@ namespace XUnitApi.Services
                 return true;
             }
             return false;
-        }
+        } */
 
         public async Task<Form> AddForm(Form form)
         {
