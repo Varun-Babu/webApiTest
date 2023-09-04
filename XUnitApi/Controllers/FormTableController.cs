@@ -167,7 +167,11 @@ namespace XUnitApi.Controllers
                 {
                     return BadRequest("Invalid form data.");
                 }
-
+                var exist = _formTableRepository.FormExists(form.Id);
+                if (exist)
+                {
+                    return Conflict("Form already exist");
+                }
                 var addedForm = await _formTableRepository.AddForm(form);
 
                 if (addedForm != null)

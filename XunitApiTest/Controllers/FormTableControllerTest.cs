@@ -321,6 +321,25 @@ namespace XunitApiTest.Controllers
             _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
         }
 
+        [Fact]
+        public async Task AddForm_Conflict_FormAlreadyExists()
+        {
+            // Arrange
+            var form = new Form();
+            _mockInterface.Setup(repo => repo.FormExists(It.IsAny<Guid>())).Returns(true);       
+
+            // Act
+            var result = await _sut.AddForm(form);
+
+            // Assert
+            result.Should().BeOfType<ConflictObjectResult>()
+                .Which.Value.Should().Be("Form already exist");
+
+            //verify
+            _mockInterface.Verify(repo => repo.FormExists(form.Id), Times.Once);
+        }
+    
+
         #endregion
 
         #region get forms by tablename
