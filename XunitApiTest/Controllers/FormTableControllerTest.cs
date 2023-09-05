@@ -45,18 +45,12 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var formName = _fixture.Create<string>();
-            var updatedForm = new Form
-            {
-                Name = formName,
+            var updatedForm = _fixture.Create<Form>();
+            updatedForm.Name = formName;
+            var existingForm = _fixture.Create<Form>();
+            existingForm.Name = formName;
 
-            };
-            var existingField = new Form
-            {
-                Name = formName,
-
-            };
-
-            _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ReturnsAsync(existingField);
+            _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ReturnsAsync(existingForm);
 
             // Act
             var result = await _sut.EditForm(formName, updatedForm);
@@ -74,11 +68,8 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var formName = _fixture.Create<string>();
-            var updatedForm = new Form
-            {
-                Name = formName,
-
-            };
+            var updatedForm = _fixture.Create<Form>();
+            updatedForm.Name = formName;
             _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ReturnsAsync((Form)null);
 
             // Act
@@ -98,11 +89,8 @@ namespace XunitApiTest.Controllers
             // Arrange
 
             var formName = _fixture.Create<string>();
-            var updatedForm = new Form
-            {
-                Name = formName,
-
-            };
+            var updatedForm = _fixture.Create<Form>();
+            updatedForm.Name = formName;
 
             _mockInterface.Setup(s => s.EditForm(formName, updatedForm)).ThrowsAsync(new Exception("Test exception"));
             // Act
