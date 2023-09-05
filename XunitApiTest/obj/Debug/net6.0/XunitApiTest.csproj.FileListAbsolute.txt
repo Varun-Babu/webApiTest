@@ -163,3 +163,6 @@ C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\obj\Debug\net6.0\refint\X
 C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\obj\Debug\net6.0\XunitApiTest.pdb
 C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\obj\Debug\net6.0\XunitApiTest.genruntimeconfig.cache
 C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\obj\Debug\net6.0\ref\XunitApiTest.dll
+C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\bin\Debug\net6.0\System.Text.Encodings.Web.dll
+C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\bin\Debug\net6.0\System.Text.Json.dll
+C:\Users\varun.babu\source\repos\XUnitApi\XunitApiTest\bin\Debug\net6.0\runtimes\browser\lib\net6.0\System.Text.Encodings.Web.dll

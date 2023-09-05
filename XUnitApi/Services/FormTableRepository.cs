@@ -69,9 +69,21 @@ namespace XUnitApi.Services
                 {
                     formexist.Sequence = editedForm.Sequence;
                 }
-                if (editedForm.Number != null)
+                if (editedForm.Type != null)
                 {
-                    formexist.Number = editedForm.Number;
+                    formexist.Type = editedForm.Type;
+                }
+                if (editedForm.MinOccurs != null)
+                {
+                    formexist.MinOccurs = editedForm.MinOccurs;
+                }
+                if (editedForm.MaxOccurs != null)
+                {
+                    formexist.MaxOccurs = editedForm.MaxOccurs;
+                }
+                if (editedForm.TableId != null)
+                {
+                    formexist.TableId = editedForm.TableId;
                 }
                 await apiDbContext.SaveChangesAsync();
                 return formexist;

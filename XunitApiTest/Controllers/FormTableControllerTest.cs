@@ -19,6 +19,7 @@ using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using System.Drawing;
 using System.Reflection.Metadata;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace XunitApiTest.Controllers
 {
@@ -31,6 +32,9 @@ namespace XunitApiTest.Controllers
         public FormTableControllerTest()
         {
             _fixture = new Fixture();
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+            .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
             _mockInterface = _fixture.Freeze<Mock<IFormTableRepository>>();
             _sut = new FormTableController(_mockInterface.Object);
         }
@@ -61,7 +65,7 @@ namespace XunitApiTest.Controllers
             result.Should().BeOfType<OkObjectResult>()
                 .Which.Value.Should().Be("Successfully Updated");
 
-            // Verify that the service method was called with the correct arguments
+            // Verify
             _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
@@ -84,7 +88,7 @@ namespace XunitApiTest.Controllers
             result.Should().BeOfType<NotFoundObjectResult>()
                 .Which.Value.Should().Be("No Such Form Exists");
 
-            // Verify that the service method was called with the correct argument
+            // Verify 
             _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
@@ -107,7 +111,7 @@ namespace XunitApiTest.Controllers
             result.Should().BeOfType<BadRequestObjectResult>()
                 .Which.Value.Should().Be("Test exception");
 
-            // Verify that the service method was called with the correct argument
+            // Verify 
             _mockInterface.Verify(s => s.EditForm(formName, updatedForm), Times.Once);
         }
 
@@ -120,7 +124,7 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var id = _fixture.Create<Guid>();
-            var existingField = new Form();
+            var existingField = _fixture.Create<Form>();
             _mockInterface.Setup(x => x.FormExists(id))
                       .Returns(true);
 
@@ -130,10 +134,12 @@ namespace XunitApiTest.Controllers
             var result = await _sut.DeleteForm(id);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<OkObjectResult>()
               .Subject.Value.Should().Be("Form Deleted");
+           
 
-            // Verify that the methods were called as expected
+            // Verify 
             _mockInterface.Verify(i => i.FormExists(id), Times.Once);
             _mockInterface.Verify(i => i.DeleteForm(id), Times.Once);
 
@@ -150,15 +156,14 @@ namespace XunitApiTest.Controllers
             var result = await _sut.DeleteForm(id);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundObjectResult>();
 
             var notFoundResult = result as NotFoundObjectResult;
             notFoundResult.Value.Should().Be("Form not found");
 
-            // Verify that FormExists was called as expected
+            // Verify 
             _mockInterface.Verify(i => i.FormExists(id), Times.Once);
-
-            // Verify that DeleteForm was not called
             _mockInterface.Verify(i => i.DeleteForm(It.IsAny<Guid>()), Times.Never);
         }
 
@@ -176,11 +181,12 @@ namespace XunitApiTest.Controllers
             var result = await _sut.DeleteForm(formId);
 
             // Assert
+            result.Should().NotBeNull();
             var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
             badRequestResult.StatusCode.Should().Be(400);
             badRequestResult.Value.Should().Be("An error occurred while deleting the form.");
 
-            // Verify that the FormExists and DeleteForm methods of the repository were called with the expected parameter
+            // Verify
             _mockInterface.Verify(repo => repo.FormExists(formId), Times.Once);
             _mockInterface.Verify(repo => repo.DeleteForm(formId), Times.Once);
         }
@@ -188,24 +194,22 @@ namespace XunitApiTest.Controllers
         #endregion
 
         #region get all forms by type
+
         [Fact]
         public async Task GetAllFormsByFormType_ReturnsOkResult_WithValidFormType()
         {
             // Arrange
-            var formType = _fixture.Create<string>(); 
-            var expectedForms = new List<Form>
-            {
-                new Form(),
-                new Form(),
-                new Form()
-            };
-            foreach (var form in expectedForms)
-            {
-                form.Type = formType; 
-            }
 
-            _mockInterface.Setup(repo => repo.GetAllFormsByFormType(formType))
-                          .ReturnsAsync(expectedForms);
+            var formType = _fixture.Create<string>();
+            var expectedForms = _fixture.Create<List<Form>>().ToList();
+
+            foreach (var form in expectedForms)
+             {
+                 form.Type = formType; 
+             } 
+
+             _mockInterface.Setup(repo => repo.GetAllFormsByFormType(formType))
+                           .ReturnsAsync(expectedForms);
 
             // Act
             var result = await _sut.GetAllFormsByFormType(formType);
@@ -214,9 +218,10 @@ namespace XunitApiTest.Controllers
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.StatusCode.Should().Be(200);
             var resultForms = okResult.Value.Should().BeAssignableTo<List<Form>>().Subject;
-            resultForms.Should().BeEquivalentTo(expectedForms);
+             resultForms.Should().BeEquivalentTo(expectedForms);
+            result.Should().NotBeNull();
 
-            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsByFormType(formType), Times.Once);
         }
 
@@ -237,8 +242,8 @@ namespace XunitApiTest.Controllers
             notFoundResult.StatusCode.Should().Be(404);
             var errorMessage = notFoundResult.Value.Should().BeOfType<string>().Subject;
             errorMessage.Should().Be("No form existing with the given name");
-
-            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            result.Should().NotBeNull();
+            // Verify
             _mockInterface.Verify(repo => repo.GetAllFormsByFormType(invalidFormType), Times.Once);
         }
 
@@ -258,8 +263,8 @@ namespace XunitApiTest.Controllers
             badRequestResult.StatusCode.Should().Be(400);
             var exceptionMessage = badRequestResult.Value.Should().BeOfType<string>().Subject;
             exceptionMessage.Should().Be("An error occurred");
-
-            // Verify that the GetAllFormsByFormType method of the repository was called with the expected parameter
+            result.Should().NotBeNull();
+            // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsByFormType(formType), Times.Once);
         }
 
@@ -271,7 +276,7 @@ namespace XunitApiTest.Controllers
         public async Task AddForm_ValidForm_ShouldReturnOkWithAddedForm()
         {
             // Arrange
-            var validForm = new Form();
+            var validForm = _fixture.Create<Form>();
             _mockInterface.Setup(repo => repo.AddForm(It.IsAny<Form>()))
                 .ReturnsAsync(validForm);
 
@@ -282,8 +287,9 @@ namespace XunitApiTest.Controllers
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.StatusCode.Should().Be(200);
             okResult.Value.Should().BeEquivalentTo(validForm);
+            result.Should().NotBeNull();
 
-            // Verify that the AddForm method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
         }
 
@@ -298,8 +304,9 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().BeOfType<BadRequestObjectResult>();
+            result.Should().NotBeNull();
 
-            // Verify that the AddForm method of the repository was not called
+            // Verify 
             _mockInterface.Verify(repo => repo.AddForm(It.IsAny<Form>()), Times.Never);
         }
 
@@ -307,7 +314,7 @@ namespace XunitApiTest.Controllers
         public async Task AddForm_TableNameNotFound_ShouldReturnNotFound()
         {
             // Arrange
-            var validForm = new Form();
+            var validForm = _fixture.Create<Form>();
             _mockInterface.Setup(repo => repo.AddForm(It.IsAny<Form>()))
                 .ReturnsAsync((Form)null);
 
@@ -315,9 +322,10 @@ namespace XunitApiTest.Controllers
             var result = await _sut.AddForm(validForm);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundObjectResult>();
 
-            // Verify that the AddForm method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
         }
 
@@ -325,13 +333,14 @@ namespace XunitApiTest.Controllers
         public async Task AddForm_Conflict_FormAlreadyExists()
         {
             // Arrange
-            var form = new Form();
+            var form = _fixture.Create<Form>();
             _mockInterface.Setup(repo => repo.FormExists(It.IsAny<Guid>())).Returns(true);       
 
             // Act
             var result = await _sut.AddForm(form);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<ConflictObjectResult>()
                 .Which.Value.Should().Be("Form already exist");
 
@@ -348,15 +357,9 @@ namespace XunitApiTest.Controllers
         public async Task GetFormsByTableName_FormsExist_ShouldReturnOkWithForms()
         {
             // Arrange
-            var tableName = "SampleTable";
-             var forms = new List<Form>
-             {
-                 new Form(),
-                 new Form(),
-                 new Form()
-             }; 
-  
-            // Create a list of 3 sample forms
+            var tableName = _fixture.Create<string>();
+            var forms = _fixture.Create<List<Form>>().ToList();
+
             _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
                 .ReturnsAsync(forms);
 
@@ -364,9 +367,10 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetFormsByTableName(tableName);
 
             // Assert
-           result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(forms);
+            result.Should().NotBeNull();
+            result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeEquivalentTo(forms);
 
-            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            // Verify
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
         }
 
@@ -374,7 +378,7 @@ namespace XunitApiTest.Controllers
         public async Task GetFormsByTableName_NoFormsExist_ShouldReturnNotFound()
         {
             // Arrange
-            var tableName = "NonExistentTable";
+            var tableName = _fixture.Create<string>();
             _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
                 .ReturnsAsync(new List<Form>()); 
 
@@ -382,9 +386,10 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetFormsByTableName(tableName);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundResult>();
 
-            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
         }
 
@@ -392,7 +397,7 @@ namespace XunitApiTest.Controllers
         public async Task GetFormsByTableName_ExceptionThrown_ShouldReturnBadRequest()
         {
             // Arrange
-            var tableName = "SampleTable";
+            var tableName = _fixture.Create<string>();
             _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
                 .ThrowsAsync(new Exception("An error occurred."));
 
@@ -400,9 +405,10 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetFormsByTableName(tableName);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<BadRequestObjectResult>();
 
-            // Verify that the GetFormsByTableName method of the repository was called with the expected parameter
+            // Verify
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
         }
 
@@ -415,16 +421,8 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             var tableId = Guid.NewGuid();
-            var tableName = "SampleTable";
-            var forms = new List<Form>
-            {
-                new Form(),
-                new Form(),
-                new Form()
-                
-            };
-
-            // Create a list of 3 sample forms
+            var tableName = _fixture.Create<string>();
+            var forms = _fixture.Create<List<Form>>().ToList();
             _mockInterface.Setup(repo => repo.GetAllFormsAndTableName(tableId))
                 .ReturnsAsync((forms, tableName));
 
@@ -432,10 +430,11 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetFormsAndTableName(tableId);
 
             // Assert
+            result.Should().NotBeNull();
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.StatusCode.Should().Be(200);
 
-            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
 
         }
@@ -449,12 +448,14 @@ namespace XunitApiTest.Controllers
                 .ReturnsAsync((new List<Form>(), "NonExistentTable"));
 
             // Act
+
             var result = await _sut.GetFormsAndTableName(tableId);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundResult>();
 
-            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
         }
 
@@ -470,9 +471,10 @@ namespace XunitApiTest.Controllers
             var result = await _sut.GetFormsAndTableName(tableId);
 
             // Assert
+            result.Should().NotBeNull();
             result.Should().BeOfType<BadRequestObjectResult>();
 
-            // Verify that the GetAllFormsAndTableName method of the repository was called with the expected parameter
+            // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
         }
 

@@ -10,6 +10,7 @@ public partial class Form
     [Key]
     public Guid Id { get; set; }
 
+
     [JsonIgnore]
     public Guid? RatebookId { get; set; }
 
