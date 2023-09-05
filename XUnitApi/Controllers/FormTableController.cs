@@ -44,7 +44,7 @@ namespace XUnitApi.Controllers
             }
         }
 
-        //Get all records from Form table and Name fro AoTable by passing tableId as parameter
+        //Get all records from Form table and Name from AoTable by passing tableId as parameter
 
         [HttpGet("/forms/{tableId}")]
         public async Task<IActionResult> GetFormsAndTableName(Guid tableId)

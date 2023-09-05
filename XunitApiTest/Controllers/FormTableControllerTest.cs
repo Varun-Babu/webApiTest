@@ -286,12 +286,16 @@ namespace XunitApiTest.Controllers
         {
             // Arrange
             Form invalidForm = null;
+            _mockInterface.Setup(repo => repo.AddForm(It.IsAny<Form>()))
+                .ReturnsAsync(invalidForm); 
+
 
             // Act
             var result = await _sut.AddForm(invalidForm);
 
             // Assert
-            result.Should().BeOfType<BadRequestObjectResult>();
+            result.Should().BeOfType<BadRequestObjectResult>()
+                .Subject.Value.Should().Be("Invalid form data."); 
             result.Should().NotBeNull();
 
             // Verify 
@@ -311,7 +315,9 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            result.Should().BeOfType<NotFoundObjectResult>();
+            var okResult = result.Should().BeOfType<NotFoundObjectResult>()
+                .Which.Value.Should().Be("name not available in AOtable");
+
 
             // Verify 
             _mockInterface.Verify(repo => repo.AddForm(validForm), Times.Once);
@@ -375,7 +381,8 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            result.Should().BeOfType<NotFoundResult>();
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.StatusCode.Should().Be(404);
 
             // Verify 
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
@@ -394,7 +401,10 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.StatusCode.Should().Be(400);
+            badRequestResult.Value.Should().Be("An error occurred.");
+
 
             // Verify
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
@@ -420,7 +430,9 @@ namespace XunitApiTest.Controllers
             // Assert
             result.Should().NotBeNull();
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().BeEquivalentTo((forms, tableName));
             okResult.StatusCode.Should().Be(200);
+            //value
 
             // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
@@ -436,13 +448,12 @@ namespace XunitApiTest.Controllers
                 .ReturnsAsync((new List<Form>(), "NonExistentTable"));
 
             // Act
-
             var result = await _sut.GetFormsAndTableName(tableId);
 
             // Assert
             result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundResult>();
-
+            
             // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
         }
@@ -460,7 +471,10 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.StatusCode.Should().Be(400);
+            badRequestResult.Value.Should().Be("An error occurred.");
+
 
             // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
