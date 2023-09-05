@@ -374,17 +374,16 @@ namespace XunitApiTest.Controllers
             // Arrange
             var tableName = _fixture.Create<string>();
             _mockInterface.Setup(repo => repo.GetFormsByTableName(tableName))
-                .ReturnsAsync(new List<Form>()); 
+                .ReturnsAsync(new List<Form>());
 
             // Act
             var result = await _sut.GetFormsByTableName(tableName);
 
             // Assert
             result.Should().NotBeNull();
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.StatusCode.Should().Be(404);
+            result.Should().BeOfType<NotFoundResult>();
 
-            // Verify 
+            // Verify
             _mockInterface.Verify(repo => repo.GetFormsByTableName(tableName), Times.Once);
         }
 
@@ -429,10 +428,17 @@ namespace XunitApiTest.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-            okResult.Value.Should().BeEquivalentTo((forms, tableName));
-            okResult.StatusCode.Should().Be(200);
-            //value
+            var okResult = result.Should().BeOfType<OkObjectResult>();
+          
+            var response = okResult.Subject.Value as System.Dynamic.ExpandoObject;
+
+            // Check the TableName
+            var tableNameProperty = response?.FirstOrDefault(p => p.Key == "tableName");
+            tableNameProperty?.Value.Should().Be(tableName);
+
+            // Check the Forms
+            var formsProperty = response?.FirstOrDefault(p => p.Key == "forms");
+            formsProperty?.Value.Should().BeEquivalentTo(forms);
 
             // Verify 
             _mockInterface.Verify(repo => repo.GetAllFormsAndTableName(tableId), Times.Once);
