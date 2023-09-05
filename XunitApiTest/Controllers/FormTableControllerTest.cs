@@ -431,12 +431,8 @@ namespace XunitApiTest.Controllers
             var okResult = result.Should().BeOfType<OkObjectResult>();
           
             var response = okResult.Subject.Value as System.Dynamic.ExpandoObject;
-
-            // Check the TableName
             var tableNameProperty = response?.FirstOrDefault(p => p.Key == "tableName");
             tableNameProperty?.Value.Should().Be(tableName);
-
-            // Check the Forms
             var formsProperty = response?.FirstOrDefault(p => p.Key == "forms");
             formsProperty?.Value.Should().BeEquivalentTo(forms);
 
